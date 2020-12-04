@@ -1,3 +1,4 @@
+using CleanDownloadFolder.Helpers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -20,7 +21,10 @@ namespace CleanDownloadFolder
             while (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                await Task.Delay(1000, stoppingToken);
+
+                Notifier.Notify("Copied some files");
+
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
             }
         }
     }
