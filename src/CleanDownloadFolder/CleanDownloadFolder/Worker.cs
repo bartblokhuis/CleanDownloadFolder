@@ -13,13 +13,19 @@ namespace CleanDownloadFolder
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
+        private readonly WorkerOptions _workerOptions;
+
         private static string DownloadFolderPath => KnownFolders.GetPath(KnownFolder.Downloads);
-        public string OutputPath { get; set; } = "E:\\tempDownload";
+        public string OutputPath { get; set; }
 
 
-        public Worker(ILogger<Worker> logger)
+        public Worker(ILogger<Worker> logger,
+            WorkerOptions workerOptions)
         {
             _logger = logger;
+            _workerOptions = workerOptions;
+
+            OutputPath = _workerOptions.OutputPath;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -48,22 +54,22 @@ namespace CleanDownloadFolder
             if (!outputDirectory.Exists)
                 throw new ApplicationException("Output folder doesn't exist");
 
-            var downloadFolderFiles = downloadFolderDirectory.GetFiles().Where(x => !x.Name.Equals("tempdesktop.ini") && x.CreationTimeUtc <= DateTime.UtcNow.AddDays(-1)).ToList();
+            var downloadFolderFiles = downloadFolderDirectory.GetFiles().Where(x => !x.Attributes.HasFlag(FileAttributes.Hidden) && x.LastWriteTime <= DateTime.UtcNow.AddDays(-1)).ToList();
 
             if (!downloadFolderFiles.Any())
                 return;
 
-            var firstDate = downloadFolderFiles.Min(x => x.CreationTime);
-            var lastDate = downloadFolderFiles.Max(x => x.CreationTime);
+            var firstDate = downloadFolderFiles.Min(x => x.LastWriteTime);
+            var lastDate = downloadFolderFiles.Max(x => x.LastWriteTime);
 
             var tempFolderName = GetOutputFolderName(firstDate, lastDate);
             var tempFolderPath = OutputPath + "\\" + tempFolderName;
 
             var filesCopied = await CopyFilesToNewFolder(downloadFolderFiles, tempFolderPath);
+
+            //Alert the user that files have been copied to the backup folder.
             if(filesCopied != 0)
-            {
                 Notifier.Notify($"Copied {filesCopied} to the folder: {tempFolderName}");
-            }
         }
 
         /// <summary>

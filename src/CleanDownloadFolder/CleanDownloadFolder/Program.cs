@@ -1,3 +1,5 @@
+using CleanDownloadFolder.Helpers;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -14,6 +16,12 @@ namespace CleanDownloadFolder
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((hostContext, services) =>
                 {
+                    IConfiguration configuration = hostContext.Configuration;
+
+                    WorkerOptions options = configuration.GetSection("WorkerOptions").Get<WorkerOptions>();
+
+                    services.AddSingleton(options);
+
                     services.AddHostedService<Worker>();
                 });
     }
